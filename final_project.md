@@ -29,6 +29,7 @@ date: \small \today
 \definecolor{pgreen}{rgb}{0,0.5,0}
 \definecolor{pred}{rgb}{0.9,0,0}
 \definecolor{pgrey}{rgb}{0.46,0.45,0.48}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
 
 \lstset{language=Java,
   showspaces=false,
@@ -52,24 +53,24 @@ date: \small \today
 
 \ttfamily
 
-* 0 [Abstract ..................................................... 4](#abstract)
-* 1 [Introduction ................................................. 5](#introduction)
-    * 1.1 [What we learned from the previous project .............. 5](#what-we-learned-from-the-previous-project)
-    * 1.2 [MQTT ................................................... 7](#mqtt)
-    * 1.3 [Storage ............................................... 10](#storage)
-* 2 [Android Application ......................................... 11](#android-application)
-    * 2.1 [Performance and Stability ............................. 11](#performance-and-stability)
-    * 2.2 [Problems with Power Saving ............................ 15](#problems-with-power-saving)
-* 3 [Data & Processing ........................................... 17](#data-processing)
-    * 3.1 [Latitude & Longitude .................................. 17](#latitude-longitude)
-    * 3.2 [Altitude .............................................. 19](#altitude)
-    * 3.3 [Speed ................................................. 21](#speed)
-    * 3.4 [Acceleration .......................................... 23](#acceleration)
-* 4 [Weather Data ................................................ 26](#weather-data)
-    * 4.1 [Accessing Observations ................................. ?](#accessing-observations)
-    * 4.2 [Interpolation .......................................... ?](#interpolation)
-* 5 [Server Implementation ........................................ ?](#server-implementation)
-    * 5.1 [Subscriber Step ........................................ ?](#subscriber-step)
+* [Abstract ....................................................... 5](#abstract)
+* 1 [Introduction ................................................. 6](#introduction)
+    * 1.1 [What we learned from the previous project .............. 6](#what-we-learned-from-the-previous-project)
+    * 1.2 [MQTT ................................................... 8](#mqtt)
+    * 1.3 [Storage ............................................... 11](#storage)
+* 2 [Android Application ......................................... 12](#android-application)
+    * 2.1 [Performance and Stability ............................. 12](#performance-and-stability)
+    * 2.2 [Problems with Power Saving ............................ 16](#problems-with-power-saving)
+* 3 [Data & Processing ........................................... 18](#data-processing)
+    * 3.1 [Latitude & Longitude .................................. 18](#latitude-longitude)
+    * 3.2 [Altitude .............................................. 20](#altitude)
+    * 3.3 [Speed ................................................. 22](#speed)
+    * 3.4 [Acceleration .......................................... 24](#acceleration)
+* 4 [Weather Data ................................................ 27](#weather-data)
+    * 4.1 [Accessing Observations ................................ 27](#accessing-observations)
+    * 4.2 [Interpolation ......................................... 29](#interpolation)
+* 5 [Server Implementation ....................................... 33](#server-implementation)
+    * 5.1 [Subscriber Step ....................................... 33](#subscriber-step)
     * 5.2 [Back-end & Storage ..................................... ?](#back-end-&-storage)
     * 5.3 [Access to Data ......................................... ?](#access-to-data)
 * 6 [Conclusion ................................................... ?](#conclusion)
@@ -80,48 +81,61 @@ date: \small \today
 
 # Table of figures
 
-* Figure 1: Comparison of FFT given by the Samsung and PX4
-* Figure 2: Comparison of filtered acceleration
-* Figure 3: Original Android application
-* Figure 4: MQTT communication
-* Figure 5: MongoDB database and collection format (three flights on two different days)
-* Figure 6: Keflavík to Brussels flight path
-* Figure 7: Brussels to Keflavík flight path
-* Figure 8: Reykjavík to Egilsstaðir flight path
-* Figure 9: Reykjavík to Ísafjörður flight path
-* Figure 10: Keflavík to Brussels flight altitude
-* Figure 11: Reykjavík to Ísafjörður flight altitude
-* Figure 12: Keflavík to Brussels flight speed
-* Figure 13: Reykjavík to Ísafjörður flight speed
-* Figure 14: Reykjavík to Ísafjörður flight STD/RMS
-* Figure 15: Reykjavík to Ísafjörður flight EDR
-* Figure 16: Accelerometer measuring rate of different smartphones
+* Figure 1: Comparison of FFT given by the Samsung and PX4 ...... 7
+* Figure 2: Comparison of filtered acceleration ................. 7
+* Figure 3: Original Android application ........................ 8
+* Figure 4: MQTT communication .................................. 9
+* Figure 5: MongoDB database format (three flights) ............ 12
+* Figure 6: Keflavík to Brussels flight path ................... 18
+* Figure 7: Brussels to Keflavík flight path ................... 19
+* Figure 8: Reykjavík to Egilsstaðir flight path ............... 19
+* Figure 9: Reykjavík to Ísafjörður flight path ................ 20
+* Figure 10: Keflavík to Brussels flight altitude .............. 21
+* Figure 11: Reykjavík to Ísafjörður flight altitude ........... 21
+* Figure 12: Keflavík to Brussels flight speed ................. 23
+* Figure 13: Reykjavík to Ísafjörður flight speed .............. 24
+* Figure 14: Reykjavík to Ísafjörður flight STD/RMS ............ 25
+* Figure 15: Reykjavík to Ísafjörður flight EDR ................ 26
+* Figure 16: Accelerometer measuring rates ..................... 26
+* Figure 17: Weather observations for Blönduós ................. 28
+* Figure 18: Weather observations for Austfirðir ............... 29
+* Figure 19: Reykjavík to Ísafjörður flight wind speed ......... 32
+* Figure 20: Reykjavík to Ísafjörður flight wind direction ..... 32
 
 \pagebreak
 
 # Table of listings
 
-* Listing 1: Sensor event listener
-* Listing 2: Measurement object
-* Listing 3: Measurement buffer
-* Listing 4: Power management
+* Listing 1: Sensor event listener ............................. 13
+* Listing 2: Measurement object ................................ 14
+* Listing 3: Measurement buffer ................................ 15
+* Listing 4: Power management .................................. 17
+* Listing 5: Choosing a triangle ............................... 30
+* Listing 6: Barycentric coordinates ........................... 31
 
 # List of acronyms
 
-* MQTT: Message Queueing Telemetry Transport
-* PX4: Pixhawk4
-* EDR: Eddy Dissipation Rate
-* OASIS: Open Artwork System Interchange Standard
 * ACK: Acknowledgment
-* TCP: Transmission Control Protocol 
-* RAM: Random Access Memory 
+* API: Application Programming Interface
+* EDR: Eddy Dissipation Rate
 * FFT: Fast Fourier Transform
 * GPS: Global Positioning System
+* MQTT: Message Queueing Telemetry Transport
+* OASIS: Open Artwork System Interchange Standard
+* PX4: Pixhawk4
+* RAM: Random Access Memory 
 * RMS: Root Mean Square
+* TCP: Transmission Control Protocol 
 
 \pagebreak
 
 \rmfamily
+
+# Acknowledgements
+
+Special thanks to Rannsóknamiðstöð Íslands for generously funding this report and Kristján Orri Magnússon for providing domestic flight data.
+
+\pagebreak
 
 # Abstract
 
@@ -511,22 +525,117 @@ The values in the above figure are obtained by measuring sampling rate using Phy
 
 ## 4.1 Accessing Observations
 
-* Poor access to existing observations
-  - Most APIs provide forecasts instead
-* Scraping vedur.is and storing locally for better coverage
+Matching weather data to location data was more problematic than expected. Predictive data is much more readily available through various APIs, most of which are paid services that do not reveal the models used to obtain values at a given location. Measured historical observations are slightly more difficult to get in a reasonable way. Most weather APIs do not actually provide any way to directly query stations and likely do not even have any but aggregate from some initial source. These kinds of observations are readily available to view on the weather website of the Icelandic Met Office but there is not a sufficiently capable public facing API - one exists but it seems to only provide most recent measurements for ground observations. As such for the purposes of an initial version the decision was made to scrape the observations that can be viewed directly on the site. An example of the observations available for a ground station can be seen in the following Fig. 17.
+
+![Weather observations for Blönduós](vedur.png){width=80%}
+
+This kind of table can be queried for a number of locations throughout Iceland and generally there are around 30 stations that respond with wind data that would be relevant. While the maximum storage period of 6 days is quite comfortable to use the number of stations is not really sufficient to provide observations at a specific location. The site also provides observations for flight weather which uses significantly more stations, around 250 that actively respond specifically. An example of a table of observations provided by such a station can be seen in the upcoming Fig. 18.
+
+![Weather observations for Austfirðir](flugvedur.png){width=80%}
+
+The potential accuracy for these observations is much more suitable, observations are provided at 10 minute intervals and reporting stations are spaced much more tightly throughout the country. The downside of this alternative is that at any one moment data is only available for 4 hours. This downside can be quite easily mitigated by automatically scraping every 4 hours and storing the relevant data locally, and this is the route that was chosen. Flight weather observations are scraped on a schedule and stored locally in a simple SQLlite database. This database can then be queried for periods longer than 4 hours into the past. Ground station observations can be used for a fallback if it becomes necessary to query more than 4 hours into the past but the database does not return anything relevant.
 
 ## 4.2 Interpolation
 
-To interpolate for a given coordinate:
+Even though the so-called flight weather observation stations are relatively tightly spaced throughout the country they do still not provide point accuracy for any given location. To try mitigate over-estimation by using only one adjacent station a very simple model was implemented to choose the best matching triangle that contains the location we want and interpolate within that triangle. Choosing the triangle itself is relatively simple, viable stations are sorted in order of distance from the location in question and then checked in sets of three to see if a triangle of those three points would contain the location we are interested in. A code implementation can be seen here in Listing 5.
 
-* For a set of stations
-  - Order by ascending distance
-  - Loop through three points at a time to create triangles
-  - Check whether coordinate exists within triangle using addition of area
-  - For a viable triangle calculate the barycentric weights to multiply observations with
-  - Wind data for the initial coordinate is given by the measurements at the 3 stations multiplied with their given weights, added together
+\lstdefinelanguage{JavaScript}{
+  keywords = {typeof, new, true, false, function, return, null, switch, var, if, in, while, do, else, case, break, class, export, boolean, throw, implements, import, this, constructor, string, number, public, private, static, const, var, let, void},
+  morekeywords = [2]{class, export, boolean, throw, implements, import, this, interface},
+  morekeywords = [3]{Promise, Observable},
+  morekeywords = [4]{log},
+  otherkeywords = {;},
+  comment = [l]{//},
+  morecomment = [s]{/*}{*/},
+  morestring = [b]',
+  morestring = [b]",
+}
 
-*NOTE: Show some formulas for this maybe*
+\lstset{
+  language= JavaScript,
+  sensitive = false,
+  breaklines = true,
+  showstringspaces= false,
+  showspaces= false,
+  extendedchars= true
+}
+
+\singlespacing
+
+\begin{lstlisting}[language=JavaScript,caption=Choosing a triangle]
+stations.sort(compareStation); // Order stations by distance
+
+for (let i = 0; i < stations.length - 2; i += 1) {
+  if (blacklist.includes(stations[i].id)) continue;
+  for (let j = i + 1; j < stations.length - 1; j += 1) {
+    if (blacklist.includes(stations[j].id)) continue;
+    for (let k = j + 1; k < stations.length; k += 1) {
+      if (blacklist.includes(stations[k].id)) continue;
+      if (
+        inTriangle( // Check whether a triplet contains our coordinates
+          [lat, lon],
+          [
+            [stations[i].lat, stations[i].lon],
+            [stations[j].lat, stations[j].lon],
+            [stations[k].lat, stations[k].lon],
+          ]
+        )
+      )
+      return [stations[i], stations[j], stations[k]];
+    }
+  }
+}
+\end{lstlisting}
+
+\doublespacing
+
+For the three stations we then have to consider the weight to give to their weather measurements. A simple way to do this would be to check their individual distance from our point of interest, but this can produce rather warped values for triangles which are not equilateral. Instead we can use a method that is popular in computer graphics and use barycentric coordinates which effectively provide weights based on area instead of distance.
+
+\pagebreak
+
+Weights for the individual stations, represented as points *A, B* and *C* can be represented as the following area definitions (where *P* is our location point of interest):
+
+$$u = \frac{TriangleCAP_{Area}}{TriangleABC_{Area}}$$
+$$v = \frac{TriangleABP_{Area}}{TriangleABC_{Area}}$$
+$$w = \frac{TriangleBCP_{Area}}{TriangleABC_{Area}}$$
+
+The total area of *u + v + w* is always 1 as it is the total area of the triangle and the individual values should therefore be in the range of 0 to 1. We can represent this in code with our point of interest and triangle points as follows in Listing 6.
+
+\singlespacing
+
+\begin{lstlisting}[language=JavaScript,caption=Barycentric coordinates]
+export function baryCentricWeights(point, triangle) {
+  const cx = point[0],
+    cy = point[1],
+    t0 = triangle[0],
+    t1 = triangle[1],
+    t2 = triangle[2];
+
+  const u =
+    ((t1[1] - t2[1]) * (cx - t2[0]) + (t2[0] - t1[0]) * (cy - t2[1])) /
+    ((t1[1] - t2[1]) * (t0[0] - t2[0]) + (t2[0] - t1[0]) * (t0[1] - t2[1]));
+
+  const v =
+    ((t2[1] - t0[1]) * (cx - t2[0]) + (t0[0] - t2[0]) * (cy - t2[1])) /
+    ((t1[1] - t2[1]) * (t0[0] - t2[0]) + (t2[0] - t1[0]) * (t0[1] - t2[1]));
+
+  const w = 1 - u - v; // Since it is known the total area is one we can take the difference
+
+  return [u, v, w];
+}
+\end{lstlisting}
+
+\doublespacing
+
+\pagebreak
+
+The final result of using this combination of scraped direct weather observations and triangular interpolation applied to each set of measurements that comes in from the smartphone application produces weather data that can be seen in the following Figures 19 and 20.
+
+![Reykjavík to Ísafjörður flight wind speed](isaf_windspeed.png){width=80%}
+
+![Reykjavík to Ísafjörður flight wind direction](isaf_winddirection.png){width=80%}
+
+These are values from one of the later domestic flights we discussed in Chapt. 3. As we can see this is not a perfect implementation, we can see in Fig. 19 for example that the stations chosen at around 2500 seconds in did not have wind speed values but they did have direction. The ideal way to implement this would be in close cooperation with the Icelandic Met Office.
 
 # 5 Server Implementation
 
@@ -591,6 +700,11 @@ To interpolate for a given coordinate:
 
 # 8 Appendices
 
-* Some source code outtakes
-* Direct links to the produced code
+**All source code is available at the following links:**
+
+* Android application: \url{https://github.com/anjrv/edr_app}
+* MQTT subscriber: \url{https://github.com/anjrv/edr_subscriber} 
+* Back-end API: \url{https://github.com/anjrv/edr_backend}
+* Weather scraper: \url{https://github.com/anjrv/vedur}
+* Front-end demo: \url{https://github.com/anjrv/edr_frontend}
 

@@ -70,9 +70,10 @@ date: \small \today
     * 4.1 [Accessing Observations ................................ 27](#accessing-observations)
     * 4.2 [Interpolation ......................................... 29](#interpolation)
 * 5 [Server Implementation ....................................... 33](#server-implementation)
-    * 5.1 [Subscriber Step ....................................... 33](#subscriber-step)
-    * 5.2 [Back-end & Storage ..................................... ?](#back-end-&-storage)
-    * 5.3 [Access to Data ......................................... ?](#access-to-data)
+    * 5.1 [Sending Data .......................................... 33](#sending-data)
+    * 5.2 [Subscriber Step ....................................... 33](#subscriber-step)
+    * 5.3 [Back-end & Storage ..................................... ?](#back-end-&-storage)
+    * 5.4 [Access to Data ......................................... ?](#access-to-data)
 * 6 [Conclusion ................................................... ?](#conclusion)
 * 7 [References ................................................... ?](#references)
 * 8 [Appendices ................................................... ?](#appendices)
@@ -112,6 +113,8 @@ date: \small \today
 * Listing 4: Power management .................................. 17
 * Listing 5: Choosing a triangle ............................... 30
 * Listing 6: Barycentric coordinates ........................... 31
+* Listing 7: Measurement data-frame ............................ 33
+* Listing 8: Data handler thread ............................... 34
 
 # List of acronyms
 
@@ -441,7 +444,7 @@ For this flight a window seat could not be obtained and the smartphone did not h
 
 \pagebreak
 
-Unlike the international flights that could be seen in Fig. 6. and Fig. 7. the flight in Fig. 8. was taken by the pilot, in that particular instance the smartphone was placed low in the cockpit. An additional test was made later where the smartphone was placed on top of the dashboard and the results of that flight can be seen here in Fig. 9.
+Unlike the international flights that could be seen in Fig. 6 and Fig. 7 the flight in Fig. 8 was taken by the pilot, in that particular instance the smartphone was placed low in the cockpit. An additional test was made later where the smartphone was placed on top of the dashboard and the results of that flight can be seen here in Fig. 9.
 
 \begin{figure}
   \centering
@@ -454,17 +457,17 @@ Once again with sufficient line of sight of the sky the smartphone is able to pr
 
 ## 3.2 Altitude 
 
-Altitude is also given by the location data of the device but this value comes with additional caveats. For every reported set of location values a GPS accuracy is given, this is an estimated horizontal accuracy in meters of the given location at the 68th percentile confidence level. It is explicitly noted that this GPS accuracy value makes no guarantees for vertical positioning \cite{location}. As a result even when longitude and latitude appear to be continuous we do not necessarily see this for altitude. If we look at the altitude plots in the following Fig. 10. and Fig. 11., representing the altitude for our international and domestic flights with good location data, we see that the altitude values we receive are not correct for the entire duration of the flight.
+Altitude is also given by the location data of the device but this value comes with additional caveats. For every reported set of location values a GPS accuracy is given, this is an estimated horizontal accuracy in meters of the given location at the 68th percentile confidence level. It is explicitly noted that this GPS accuracy value makes no guarantees for vertical positioning \cite{location}. As a result even when longitude and latitude appear to be continuous we do not necessarily see this for altitude. If we look at the altitude plots in the following Fig. 10 and Fig. 11, representing the altitude for our international and domestic flights with good location data, we see that the altitude values we receive are not correct for the entire duration of the flight.
 
 \pagebreak
 
 ![Keflavík to Brussels flight altitude](brussels1_alt.png){width=80%}
 
-For the above Fig. 10. we see sharp changes in altitude where it is likely that the change should have been more gradual in reality.
+For the above Fig. 10 sharp changes in altitude can be seen and it is likely that the change should have been more gradual in reality.
 
 ![Reykjavík to Ísafjörður flight altitude](isaf_alt.png){width=80%}
 
-For this domestic flight in Fig. 11. we see more gradual changes in altitude overall but obviously wrong values at around the 500th second of the flight where the altitude suddenly spikes back down to ground levels. It is also worth remembering that in \cite{prev} there appeared to be a difference in stable ground altitude between values produced by the smartphone and values produced by the PX4.
+For this domestic flight in Fig. 11 more gradual changes in altitude can be seen overall but obviously wrong values at around the 500th second of the flight where the altitude suddenly spikes back down to ground levels. It is also worth remembering that in \cite{prev} there appeared to be a difference in stable ground altitude between values produced by the smartphone and values produced by the PX4.
 
 ## 3.3 Speed
 
@@ -472,7 +475,7 @@ Travel speed values also had to be given special consideration. The formula for 
 
 $$EDR = \frac{\sigma_{\ddot{z}}}{\sqrt{0.7 \cdot v^{\frac{2}{3}} \cdot I}}$$
 
-A more in depth explanation can be seen in \cite{prev} but for this specific chapter we are mostly concerned with the variable for aerial velocity *v*. Since *v* is part of the divisor fluctuations similar to the ones seen in altitude can end up producing what could be considered false positives when it comes to EDR. And indeed a fluctuation similar to the one visible in Fig. 11. Is visible when observing speed values produced by the smartphone. We can see an example of this in Fig. 12. Here:
+A more in depth explanation can be seen in \cite{prev} but for this specific chapter we are mostly concerned with the variable for aerial velocity *v*. Since *v* is part of the divisor fluctuations similar to the ones seen in altitude can end up producing what could be considered false positives when it comes to EDR. And indeed a fluctuation similar to the one visible in Fig. 11 is visible when observing speed values produced by the smartphone. We can see an example of this in Fig. 12 here:
 
 ![Keflavík to Brussels flight speed](brussels1_speed.png){width=80%}
 
@@ -480,7 +483,7 @@ Any of these artificial valleys would produce extremely high EDR values due to a
 
 ![Reykjavík to Ísafjörður flight speed](isaf_speed.png){width=80%}
 
-Even though speed values may have severe errors as can be seen in Fig. 12. The same flight is very likely to have correct longitude and latitude data as can be seen in Fig. 6., the coordinate track for that same flight. In a private conversation concerning the viability of the Hvassahraun airport Þórgeir Pálsson suggested that it should be viable to use speed calculated from distance instead of the raw speed value produced by the smartphone. It stands to that it is possible to calculate the distance using the haversine formula for distance between two points on a sphere. These calculations are what appear in Fig. 13. As the red, calculated, track and are the values used for *v* in the current version of the smartphone application.
+Even though speed values may have severe errors as can be seen in Fig. 12 the same flight is very likely to have correct longitude and latitude data as can be seen in Fig. 6, the coordinate track for that same flight. In a private conversation concerning the viability of the Hvassahraun airport Þórgeir Pálsson suggested that it should be viable to use speed calculated from distance instead of the raw speed value produced by the smartphone. It stands to that it is possible to calculate the distance using the haversine formula for distance between two points on a sphere. These calculations are what appear in Fig. 13 as the red, calculated, track and are the values used for *v* in the current version of the smartphone application.
 
 ## 3.4 Acceleration
 
@@ -488,7 +491,7 @@ Some changes were also made to vertical acceleration. The initial version of the
 
 $$EDR = \frac{RMS_{\ddot{z}}}{\sqrt{0.7 \cdot v^{\frac{2}{3}} \cdot I}}$$
 
-A comparison of the two methods can be seen in Fig. 14. Shown below:
+A comparison of the two methods can be seen in Fig. 14 shown below:
 
 ![Reykjavík to Ísafjörður flight STD/RMS](isaf_variance.png){width=80%}
 
@@ -639,19 +642,108 @@ These are values from one of the later domestic flights we discussed in Chapt. 3
 
 # 5 Server Implementation
 
-## 5.1 Subscriber Step
+## 5.1 Sending Data
 
-* Parsing Mosquitto data
-* Unrolling the measurements and adding weather information
-* Bulk insert into storage used by backend
+In Fig. 4 there was a simple definition the data pipeline using MQTT. In this chapter we will discuss how the initial measurement data travels through this pipeline in more depth.
 
-## 5.2 Back-end & Storage
+\lstset{language=Java,
+  showspaces=false,
+  showtabs=false,
+  breaklines=true,
+  showstringspaces=false,
+  breakatwhitespace=true,
+  commentstyle=\color{pgreen},
+  keywordstyle=\color{pblue},
+  stringstyle=\color{pred},
+  basicstyle=\ttfamily,
+  captionpos=b,                    
+  moredelim=[il][\textcolor{pgrey}]{$$},
+  moredelim=[is][\textcolor{pgrey}]{\%\%}{\%\%}
+}
+
+The definition for each message passed through MQTT is described by the following code in Listing 7:
+
+\singlespacing
+
+\begin{lstlisting}[language=Java,caption=Measurement data-frame]
+public class Dataframe implements Serializable {
+    private String brand; // Brand of the smartphone
+    private String manufacturer; // Manufacturer of the smartphone
+    private String model; // Model number of the smartphone
+    private String id; // Unique device identifier 
+    private String version; // Android version being run
+    private String session; // User described name for measurement session 
+    private String start; // Starting time for measuring session
+    private List<Measurement> data; // List of individual measurements, max 30000
+    
+    /* Constructors */
+
+    /* Getters & Setters */
+}
+\end{lstlisting}
+
+\doublespacing
+
+In effect each of these so-called data-frames contains single lines used to define the measuring device and a set of 1 to 30000 measurements, the definition for an individual measurement was defined in Listing 2. When our measuring buffer hits the defined limit of 30000 measurements we switch buffers and write the filled data-frame to disk in zipped format.
+
+Once the user of the smartphone application decides they have finished measuring they then have the option to begin sending these stored data-frames. The main function loop for sending individual data-frames can be seen here in Listing 8:
+
+\singlespacing
+
+\begin{lstlisting}[language=Java,caption=Data handler thread]
+mBacklogHandler.post(new Runnable() { // Handler thread for these tasks
+    @Override
+    public void run() { // Definition of task to run
+        // Obtain list of stored data-frame files
+        ArrayList<String> files = FileUtils.list(getApplicationContext());
+        // If there are no files then stop looping
+        if (files.size() == 0) {
+            mBacklogHandler.postDelayed(() -> stopSelf(), Mqtt.TIMEOUT * 2);
+        } else { // If there are any files proceed to check connection
+            if (mPublisher != null && mPublisher.isConnected()) {
+                Measurements.sBacklogHasConnection = mPublisher.isConnected();
+                // If there is a connection then send the file
+                if (mMessageThread != null) {
+                    mMessageThread.handleFile(files.get(0), mPublisher, getApplicationContext());
+                } // If there isn't a connection try request one
+            } else if (mPublisher != null && !mPublisher.isConnected() && NetworkUtils.isNetworkAvailable((Application) getApplicationContext()))
+                Mqtt.connect(mPublisher, getString(R.string.mqtt_username), getString(R.string.mqtt_password));
+
+            // Post the same task to be run after a delay
+            mBacklogHandler.postDelayed(this, mPublisher != null && mPublisher.isConnected() ? Mqtt.TIMEOUT : Mqtt.TIMEOUT * 2);
+        }
+    }
+});
+\end{lstlisting}
+
+\doublespacing
+
+\pagebreak
+
+These data-frames are sent to the MQTT broker mentioned previously, the broker sends back an acknowledgement upon receiving such a data-frame and once that acknowledgement arrives to the smartphone the backlogged file is deleted.
+
+At the other end of this interaction the broker will publish that same zipped data to a predefined topic. This data is then picked up by a MQTT subscriber and processed.
+
+## 5.2 Subscriber Step
+
+\lstset{
+  language= JavaScript,
+  sensitive = false,
+  breaklines = true,
+  showstringspaces= false,
+  showspaces= false,
+  extendedchars= true
+}
+
+STUFF!
+
+## 5.3 Back-end & Storage
 
 * Storage structure using MongoDB
   - Databases
     * Collections
 
-## 5.3 Access to Data
+## 5.4 Access to Data
 
 * API endpoint logic to access stored data for further processing
 * Website link for fun

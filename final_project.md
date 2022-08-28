@@ -53,6 +53,7 @@ date: \small \today
 
 \ttfamily
 
+* [Acknowledgements ............................................... 5](#acknowledgements)
 * [Abstract ....................................................... 5](#abstract)
 * 1 [Introduction ................................................. 6](#introduction)
     * 1.1 [What we learned from the previous project .............. 6](#what-we-learned-from-the-previous-project)
@@ -71,9 +72,8 @@ date: \small \today
     * 4.2 [Interpolation ......................................... 29](#interpolation)
 * 5 [Server Implementation ....................................... 33](#server-implementation)
     * 5.1 [Sending Data .......................................... 33](#sending-data)
-    * 5.2 [Subscriber Step ....................................... 33](#subscriber-step)
-    * 5.3 [Back-end & Storage ..................................... ?](#back-end-&-storage)
-    * 5.4 [Access to Data ......................................... ?](#access-to-data)
+    * 5.2 [Subscriber Step ....................................... 35](#subscriber-step)
+    * 5.3 [Back-end & API ........................................ 38](#back-end-api)
 * 6 [Conclusion ................................................... ?](#conclusion)
 * 7 [References ................................................... ?](#references)
 * 8 [Appendices ................................................... ?](#appendices)
@@ -115,6 +115,8 @@ date: \small \today
 * Listing 6: Barycentric coordinates ........................... 31
 * Listing 7: Measurement data-frame ............................ 33
 * Listing 8: Data handler thread ............................... 34
+* Listing 9: Subscriber processing ............................. 36
+* Listing 10: API routes ....................................... 38
 
 # List of acronyms
 
@@ -123,12 +125,16 @@ date: \small \today
 * EDR: Eddy Dissipation Rate
 * FFT: Fast Fourier Transform
 * GPS: Global Positioning System
+* IP: Internet Protocol
+* JSON: JavaScript Object Notation
 * MQTT: Message Queueing Telemetry Transport
 * OASIS: Open Artwork System Interchange Standard
+* PCIe: Peripheral Component Interconnect Express
 * PX4: Pixhawk4
 * RAM: Random Access Memory 
 * RMS: Root Mean Square
 * TCP: Transmission Control Protocol 
+* USB: Universal Serial Bus
 
 \pagebreak
 
@@ -735,25 +741,141 @@ At the other end of this interaction the broker will publish that same zipped da
   extendedchars= true
 }
 
-STUFF!
+The MQTT subscriber program is set up to listen to the predefined topic, receive data for that topic and to do the initial processing work and validation for data received. Most of these steps are quite simple. Initially when the MQTT broker sends a data-frame it must be decompressed using gzip. Once this is done it is possible to rely on the fact that the data-frames are sent as serialized JSON, therefore a valid data-frame should also be able to be read as a JSON object. Once this JSON object has been unzipped and parsed it is important to flatten the data such that the identifying device information that is only represented once per data-frame is injected back into every measurement, this process ensures that each row provides a complete record of a measurement. During this kind of row-wise manipulation there is also the opportunity to add additional data and this opportunity is used to add weather data for each row using the methods described in the previous Chapt. 4. It is also possible to use this initial loop to do some initial inspection, one of the methods implemented is to find observations of interest that show high EDR values. The complete processing loop can be seen here in the upcoming Listing 9:
 
-## 5.3 Back-end & Storage
+\pagebreak
 
-* Storage structure using MongoDB
-  - Databases
-    * Collections
+\singlespacing
 
-## 5.4 Access to Data
+\begin{lstlisting}[language=JavaScript,caption=Subscriber processing]
+async function resolve(msg) {
+  let message;
+  try {
+    message = JSON.parse(msg);
+  } catch (err) {
+    logger.error('Unable to parse msg', err.stack);
+    return;
+  }
 
-* API endpoint logic to access stored data for further processing
-* Website link for fun
+  if (!message) return; // Not valid JSON 
+
+  const { start, brand, manufacturer, model, id, version, session, data } = message;
+
+  if (!data) return; // No measurement data
+
+  let windAvg = '';
+  let windMax = '';
+  let windDir = '';
+  let windMethod = '';
+  let windSource = '';
+
+  try { // Add in wind data
+    const mid = data[Math.floor(data.length / 2)];
+    const windData = await search(mid.lat, mid.lon, mid.time);
+    if (Object.keys(windData).length > 0) {
+      windAvg = windData.windAvg;
+      windMax = windData.windMax;
+      windDir = windData.windDir;
+      windMethod = windData.method;
+      windSource = windData.source;
+    }
+  } catch {
+    console.error(err);
+  }
+
+  let anomaly;
+  let highest = 0.25;
+
+  // Construct identifier string
+  const s = `${start}_${id}_${session}`;
+
+
+
+  // Unroll user information back into every measurement, check for highest edr value
+  data.forEach((obj) => {
+    obj.brand = brand;
+    obj.manufacturer = manufacturer;
+    obj.model = model;
+    obj.id = id;
+    obj.version = version;
+    obj.session = s;
+    obj.windAvg = windAvg;
+    obj.windMax = windMax;
+    obj.windDir = windDir;
+    obj.windMethod = windMethod;
+    obj.windSource = windSource;
+
+    if (obj.edr > highest) {
+      anomaly = obj;
+      highest = obj.edr;
+    }
+  });
+
+  // Send in processed measurement data to be inserted into MongoDB
+  await insert(start, s, data, anomaly).catch((err) => {
+    console.error(err);
+    logger.error('Unable to insert to MongoDB', err.stack);
+  });
+}
+\end{lstlisting}
+
+\doublespacing
+
+Once this processing step completes these measurements are inserted into a MongoDB database in a manner similar to the one described in Fig. 5. Aside from writing to the same database used by the back-end there is actually no direct code sharing between the subscriber code and the rest of the back-end code, because of this the steps are relatively modular and can be changed individually without many issues. Due to JavaScript being weakly typed it is still possible to retain the ability to deal with data in an agnostic way at this step, there are some expectations towards the identifying variables of the smartphone being present but individual measurement variables can be changed at the Android application level without impacting this processing step.
+
+\pagebreak
+
+## 5.3 Back-end & API
+
+The general research question of transporting crowdsourced EDR measurement data to a central storage database has been covered in the previous chapters. As an extension to this core implementation it seemed obvious to add a way to interact with the gathered data. For this purpose a simple back-end process was also implemented. This is a NodeJS back-end with a couple of routes that are provided as an API accessible to the public. The specific routes are visible here in Listing 10:
+
+\singlespacing
+
+\begin{lstlisting}[language=JavaScript,caption=API routes]
+// Route to download latest Android APK
+router.get('/app', sendApk); 
+// Route to get a list of days that have measurements stored (Databases)
+router.get('/days', validationCheck, catchErrors(listDays)); 
+// Route to fetch the sessions for one specific day (Collections)
+router.get(
+  '/days/:dayId',
+  dayIdValidator,         //
+  validationCheck,        // Request validation and error handling
+  catchErrors(listDay)    //
+);
+// Route to fetch a representative path sample for a given session
+router.get(
+  '/days/:dayId/sessions/:sessionId/sample',
+  dayIdValidator,             //  
+  sessionIdValidator,         // Request validation and error handling
+  validationCheck,            //
+  catchErrors(sampleSession)  //
+);
+// Route to download a complete csv for a given session
+router.get(
+  '/days/:dayId/sessions/:sessionId/csv',
+  dayIdValidator,           //
+  sessionIdValidator,       // Request validation and error handling
+  validationCheck,          //
+  catchErrors(csvSession)   //
+);
+\end{lstlisting}
+
+\doublespacing
+
+\pagebreak
+
+Effectively this provides a simple way to inspect the stored data in the model it is stored (See Fig. 5). Here sessions represent individual flights which are stored in their own collection and days represent databases which can contain a number of these collections. In addition to providing access to data it also provides a way to download the newest version of the Android app through the `/app` route - this is effectively just a download link that can be used by those who want to provide measurement data.
+
+### The website
+
+A very simple website has been implemented as a graphical way to interact with this user interface. This site can be accessed at \url{http://31.209.145.132:3457} (intended for use on desktop) and grants access to some of the later testing data.
 
 # 6 Conclusion
 
-* Problem sections e.g. phone positioning requirement
-* Thoughts on how to continue from here
-  - Obtain a list of I values
-  - Correct for differences in measuring rate (additional constants)
+As shown in the previous chapters the process of crowdsourcing EDR measurements to a research database is a viable process. Something akin to a minimal viable product has been produced for the purpose of a tech demo to support this report. An Android application is provided that can theoretically be run on any Android smartphone and the process of gathering measurements is relatively simple, albeit with some positioning requirements in order to ensure line-of-sight of the sky. It is also important to keep in mind, however, that in order to scale up this project more care must be taken when it comes to different smartphone models. We saw in Fig. 16 that the measuring rate of different models of smartphone is not necessarily identical and it is possible that an addition to the Android app is required to change between filter constants. It would also be necessary to implement the last part of the divisor for the EDR formula, the variable *I* which refers to the aerial properties of the airplane, this would not be particularly difficult to implement once a reasonable set of values exist and could even be looped in to automatically update by adding a route to the back-end.
+
+Thus far the entire processing and back-end application stack has been running on a Raspberry Pi4. While this has proved to be an effective and simple way of testing the different components required to make the entire process work it has also removed the ability to effectively load test the current solution. The MongoDB database has been running off of a USB thumb drive which presents challenges when it comes to any kind of read/write operations. For the purposes of continuing on with this project it would be wise to move all the data processing operations to a more suitable host device which could provide at least PCIe storage and, hopefully, a static IP address.
 
 # 7 References 
 

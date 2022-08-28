@@ -74,9 +74,9 @@ date: \small \today
     * 5.1 [Sending Data .......................................... 33](#sending-data)
     * 5.2 [Subscriber Step ....................................... 35](#subscriber-step)
     * 5.3 [Back-end & API ........................................ 38](#back-end-api)
-* 6 [Conclusion ................................................... ?](#conclusion)
-* 7 [References ................................................... ?](#references)
-* 8 [Appendices ................................................... ?](#appendices)
+* 6 [Conclusion .................................................. 40](#conclusion)
+* 7 [References .................................................. 41](#references)
+* 8 [Appendices .................................................. 42](#appendices)
 
 \pagebreak
 
@@ -515,6 +515,7 @@ It is also worth considering that the digital filter constants produced in the p
  \hline
  Smartphone model & Measuring rate (Hz) \\ 
  \hline\hline
+ iPhone Xs Max & 100 \\
  OnePlus 10 Pro & 506 \\
  OnePlus Nord & 400 \\
  Google Pixel 5 & 423 \\
